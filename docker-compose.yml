@@ -1,0 +1,197 @@
+# Local development and test stack for Invoice Ninja.
+#
+# Start:      docker compose --env-file .env.docker up -d --build
+# Status:     docker compose --env-file .env.docker ps
+# Logs:       docker compose --env-file .env.docker logs -f app
+# Create user: docker compose --env-file .env.docker exec app php artisan ninja:create-account --email=admin@example.com --password='changeme!'
+# Tests:      docker compose --env-file .env.docker exec app php artisan test --testsuite=Unit
+# Stop:       docker compose --env-file .env.docker down
+#
+# Secrets are read from .env.docker and are never baked into the images.
+
+name: invoiceninja
+
+x-app-base: &app-base
+    image: invoiceninja-local:latest
+    build:
+        context: .
+        dockerfile: Dockerfile
+    env_file:
+        - .env.docker
+    networks:
+        - backend
+    restart: unless-stopped
+    init: true
+
+services:
+    db:
+        image: mysql:8.0
+        command:
+            - --character-set-server=utf8mb4
+            - --collation-server=utf8mb4_unicode_ci
+            - --default-authentication-plugin=mysql_native_password
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+        volumes:
+            - db_data:/var/lib/mysql
+            - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+        ports:
+            - "${DB_FORWARD_PORT:-13306}:3306"
+        networks:
+            - backend
+        healthcheck:
+            test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+        deploy:
+            resources:
+                limits:
+                    cpus: "1.0"
+                    memory: 1G
+        restart: unless-stopped
+
+    redis:
+        image: redis:7-alpine
+        command: ["redis-server", "--appendonly", "yes"]
+        volumes:
+            - redis_data:/data
+        ports:
+            - "${REDIS_FORWARD_PORT:-13079}:6379"
+        networks:
+            - backend
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: 256M
+        restart: unless-stopped
+
+    app:
+        <<: *app-base
+        environment:
+            RUN_MIGRATIONS: "1"
+            DB_HOST: db
+            REDIS_HOST: redis
+            APP_URL: ${APP_URL:-http://localhost:9080}
+        depends_on:
+            db:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        ports:
+            - "${APP_FORWARD_PORT:-9080}:8080"
+        volumes:
+            - app_storage:/var/www/html/storage
+        deploy:
+            resources:
+                limits:
+                    cpus: "4.0"
+                    memory: 1G
+
+    worker:
+        <<: *app-base
+        environment:
+            RUN_MIGRATIONS: "0"
+            DB_HOST: db
+            REDIS_HOST: redis
+        depends_on:
+            app:
+                condition: service_healthy
+        command: ["php", "artisan", "queue:work", "redis", "--queue=default", "--sleep=3", "--tries=3", "--max-time=3600"]
+        healthcheck:
+            disable: true
+        volumes:
+            - app_storage:/var/www/html/storage
+        deploy:
+            resources:
+                limits:
+                    cpus: "2.0"
+                    memory: 1G
+
+    scheduler:
+        <<: *app-base
+        environment:
+            RUN_MIGRATIONS: "0"
+            DB_HOST: db
+            REDIS_HOST: redis
+        depends_on:
+            app:
+                condition: service_healthy
+        command: ["php", "artisan", "schedule:work"]
+        healthcheck:
+            disable: true
+        volumes:
+            - app_storage:/var/www/html/storage
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.25"
+                    memory: 256M
+
+    # Dedicated backup service. It is opt in through the "backup" profile so it
+    # never starts with the normal stack. It captures the databases, the app
+    # storage volume and the deployment configuration as separate artifacts.
+    #
+    #   One off backup:  docker compose --env-file .env.docker --profile backup run --rm backup once
+    #   Scheduled:       docker compose --env-file .env.docker --profile backup up -d backup
+    #   List backups:    docker compose --env-file .env.docker --profile backup run --rm backup list
+    #   Restore:         docker compose --env-file .env.docker --profile backup run --rm --user root backup restore latest
+    backup:
+        image: invoiceninja-backup:latest
+        build:
+            context: .
+            dockerfile: docker/backup/Dockerfile
+        env_file:
+            - .env.docker
+        environment:
+            DB_HOST: db
+            BACKUP_DIR: /backups
+            BACKUP_STORAGE_PATH: /app-storage
+            BACKUP_CONFIG_PATH: /config
+            BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+            BACKUP_INTERVAL: ${BACKUP_INTERVAL:-86400}
+            BACKUP_DATABASES: ${BACKUP_DATABASES:-ninja}
+            APP_IMAGE: ${APP_IMAGE:-invoiceninja-local:latest}
+        depends_on:
+            db:
+                condition: service_healthy
+        volumes:
+            - ./backups:/backups
+            - app_storage:/app-storage
+            - ./.env.docker:/config/.env.docker:ro
+            - ./docker-compose.yml:/config/docker-compose.yml:ro
+            - ./Dockerfile:/config/Dockerfile:ro
+            - ./docker:/config/docker:ro
+        networks:
+            - backend
+        profiles:
+            - backup
+        healthcheck:
+            disable: true
+        init: true
+        restart: unless-stopped
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: 256M
+
+networks:
+    backend:
+        driver: bridge
+
+volumes:
+    db_data:
+    redis_data:
+    app_storage:

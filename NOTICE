@@ -1,0 +1,64 @@
+Invoice Ninja: Montenegro EFI fiscalization (community fork)
+============================================================
+
+This repository is a MODIFIED VERSION of Invoice Ninja.
+
+Upstream project
+----------------
+Invoice Ninja
+https://github.com/invoiceninja/invoiceninja
+
+Copyright (c) Invoice Ninja LLC and contributors.
+All upstream copyrights, license terms, and notices remain with their
+respective owners.
+
+License
+-------
+Elastic License 2.0 (ELv2). See the LICENSE file in this repository.
+This modified version is distributed under the same license. You must keep
+the LICENSE file and this NOTICE with any copy you distribute.
+
+Modifications in this repository
+--------------------------------
+- Added end-to-end Montenegro EFI fiscalization against the CIS: SOAP client,
+  XML-DSig signing, IKOF/IIC and JIKR/FIC handling, QR verification, invoice
+  types, advances, corrective and storno documents, subsequent delivery, cash
+  deposits, TCR/ENU registration, fiscal counters, audit log, and journal
+  export.
+- Added Montenegro company settings, certificate handling, fiscalization API
+  endpoints, admin integration, PDF fiscal block, tests, and documentation.
+- Added a Docker Compose stack for local development and deployment (app,
+  MySQL, Redis, worker, scheduler, optional backup profile).
+- Changed PDF generation behavior and performance: CPU limits, blank-PDF
+  detection, configurable Chromium virtual-time budget, optional negative
+  caching for image fetches, and skipping the hidden whitelabel image when the
+  account is white-labelled.
+- Changed the default currency symbol position for EUR and Montenegro so that
+  amounts render with the symbol after the value, for example "1.000,00 €".
+  See migration 2026_11_09_000001_set_montenegro_currency_symbol_position.php.
+- Added bilingual documentation (English and Montenegrin/Serbian).
+
+No affiliation
+--------------
+This is an unofficial community fork. It is not affiliated with, endorsed by,
+or supported by Invoice Ninja LLC. "Invoice Ninja" and the Invoice Ninja logo
+are trademarks of Invoice Ninja LLC. Any use of those marks is subject to
+applicable law.
+
+The project is also not affiliated with the Tax Administration of Montenegro
+(Poreska uprava Crne Gore) or with the CIS. Fiscalization remains the
+responsibility of the taxpayer.
+
+Third-party components
+----------------------
+Third-party dependencies retain their own licenses and notices. See
+composer.json, composer.lock, package.json, package-lock.json, and the
+respective packages for details. Notable runtime components include Laravel,
+MySQL, Redis, Chromium, Snappdf, robrichards/xmlseclibs, and endroid/qr-code.
+
+Regulatory documents
+--------------------
+The official Montenegro EFI technical specification is published by the Tax
+Administration of Montenegro. This repository does not redistribute the
+specification. Obtain the current official version from the Tax Administration
+channels before implementing or certifying a production fiscalization flow.

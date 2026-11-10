@@ -1,0 +1,97 @@
+/node_modules
+/public/hot
+/public/storage
+/public/react
+/storage/*.key
+/storage/debugbar
+
+# Storage runtime data. Keep the placeholder .gitignore files so a fresh
+# clone still has the expected directory structure.
+/storage/app/*
+!/storage/app/.gitignore
+!/storage/app/public/
+/storage/app/public/*
+!/storage/app/public/.gitignore
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/testing/*
+!/storage/framework/testing/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+
+/tests/bootstrap/
+/vendor
+/app/Console/Commands/vendor/
+/.idea
+/.vscode
+/.vagrant
+/tests/_output
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+local_version.txt
+.env
+.phpunit.result.cache
+_ide_helper.php
+
+/resources/assets/bower
+/public/logo
+.env.dusk.local
+.env.cypress
+.env.playwright
+/public/vendors/*
+*.log
+
+# Playwright
+/tests/e2e/report/
+/tests/e2e/test-results/
+/playwright-report/
+/test-results/
+
+# Ignore local migrations
+storage/migrations
+
+.php_cs.cache
+public/test.pdf
+public/storage/test.pdf
+Modules/
+_ide_helper_models.php
+_ide_helper.php
+/composer.phar
+.tx/
+.phpunit.cache
+
+# AI tool files
+CLAUDE.md
+boost.json
+AGENTS.md
+junie/
+.agents/
+.claude/
+.codex/
+.cursor/
+.mcp.json
+
+# Playwright
+node_modules/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Docker local environment and backups
+.env.docker
+/backups/
+/exports/
+
+# Fork-specific local notes, regulatory documents, and large generated assets
+_ide_helper_custom.php
+backup_docker_container.txt
+deploy_one_command.txt
+dep_marko.txt
+Fiskalni+servis+-+Tehnicka+specifikacija+v5+-+final.md
+/public/main.profile.dart.js
+/public/*.dart.js.map
